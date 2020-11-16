@@ -11,16 +11,26 @@ services:
       - ./hadoop-hive.env
     ports:
       - "50070:50070"
-  datanode:
+  datanode1:
     image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
     volumes:
-      - datanode:/hadoop/dfs/data
+      - datanode1:/hadoop/dfs/data
     env_file:
       - ./hadoop-hive.env
     environment:
       SERVICE_PRECONDITION: "namenode:50070"
     ports:
       - "50075:50075"
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
+    volumes:
+      - datanode2:/hadoop/dfs/data
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070"
+    ports:
+      - "50076:50075"
   hive-server:
     image: bde2020/hive:2.3.2-postgresql-metastore
     env_file:
@@ -36,16 +46,34 @@ services:
       - ./hadoop-hive.env
     command: /opt/hive/bin/hive --service metastore
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 hive-metastore-postgresql:5432"
+      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 datanode2:50075 hive-metastore-postgresql:5432"
     ports:
       - "9083:9083"
   hive-metastore-postgresql:
     image: bde2020/hive-metastore-postgresql:2.3.0
+    ports:
+      - "5432:5432"
   presto-coordinator:
     image: shawnzhu/prestodb:0.181
     ports:
       - "8080:8080"
+    volumes:
+      - ./conf/hive.properties:/opt/presto-server-0.181/etc/catalog/hive.properties
+  hue:
+    image: bde2020/hdfs-filebrowser:3.11
+    ports:
+      - 8088:8088
+    environment:
+      - NAMENODE_HOST=namenode
+  pgadmin:
+    image: dpage/pgadmin4:4.18
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
 
 volumes:
   namenode:
-  datanode:
+  datanode1:
+  datanode2:
